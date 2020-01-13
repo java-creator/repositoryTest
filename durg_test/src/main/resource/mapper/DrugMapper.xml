@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 为这个mapper指定一个唯一的namespace，namespace的值习惯上设置成包名+sql映射文件名，这样就能够保证namespace的值是唯一的
+	例如namespace="com.szh.mapper.personMapper"就是com.szh.mapper(包名)+personMapper(personMapper.xml文件去除后缀) -->
+<mapper namespace="com.fh.mapper.DrugMapper">
+
+
+    <sql id="whereSql">
+        <!--
+              作用:1.自动在SQL语句后拼上where关键字
+                   2.自动去掉第一个查询条件前面的and
+          -->
+        <where>
+            <!--名字模糊查询-->
+            <if test="name != null and name != ''">
+                and drugName like concat('%',#{name},'%')
+            </if>
+            <!--价格区间-->
+            <if test="minPrice != null">
+                <![CDATA[
+              and drugPrice >= #{minPrice}
+              ]]>
+            </if>
+            <if test="maxPrice != null">
+                <![CDATA[
+            and drugPrice <= #{maxPrice}
+            ]]>
+            </if>
+            <!--销量区间-->
+            <if test="minSales != null">
+                <![CDATA[
+              and drugSales >= #{minSales}
+              ]]>
+            </if>
+            <if test="maxSales != null">
+                <![CDATA[
+            and drugSales <= #{maxSales}
+            ]]>
+            </if>
+            <!--库存区间-->
+            <if test="minStock != null">
+                <![CDATA[
+              and drugStock >= #{minStock}
+              ]]>
+            </if>
+            <if test="maxStock != null">
+                <![CDATA[
+            and drugStock <= #{maxStock}
+            ]]>
+            </if>
+            <!--时间区间-->
+            <if test="minExpiredDate != null">
+                <![CDATA[
+              and expiredDate >= #{minExpiredDate}
+              ]]>
+            </if>
+            <if test="maxExpiredDate != null">
+                <![CDATA[
+            and expiredDate <= #{maxExpiredDate}
+            ]]>
+            </if>
+            <if test="minProducedDate != null">
+                <![CDATA[
+              and producedDate >= #{minProducedDate}
+              ]]>
+            </if>
+            <if test="maxProducedDate != null">
+                <![CDATA[
+            and producedDate <= #{maxProducedDate}
+            ]]>
+            </if>
+            <!--地区-->
+            <if test="areaId != null and areaId != -1">
+                and td.areaId = #{areaId}
+            </if>
+            <!--品牌-->
+            <if test="brandId != null and brandId != -1">
+                and td.brandId = #{brandId}
+            </if>
+            <!--处方药-->
+            <if test="isOTC != null">
+                and isOTC = #{isOTC}
+            </if>
+            <!--适合人群-->
+            <if test="personList != null">
+                <foreach collection="personList" item="person" index="index">
+                    and person like concat('%',#{person},'%')
+                </foreach>
+            </if>
+
+        </where>
+    </sql>
+ <!--分页-->
+    <select id="queryDrugCount" parameterType="DrugQuery" resultType="long">
+
+        select count(*) from t_drug td
+        <include refid="whereSql"></include>
+
+    </select>
+<!--查询-->
+    <select id="queryDrugList" parameterType="drugQuery" resultType="drug">
+
+        select td.*,ta.areaname,tb.brandname from t_drug td
+        left join t_drug_area ta on td.areaId = ta.areaId
+        left join t_brand tb on td.brandId = tb.brandId
+        <include refid="whereSql"></include>
+        limit #{start},#{length}
+
+    </select>
+    <!--查询地区-->
+    <select id="queryAreaList" resultType="area">
+
+        select * from t_drug_area
+
+    </select>
+    <!--查询品牌-->
+    <select id="queryBrandList" resultType="brand">
+
+        select * from t_brand
+
+    </select>
+    <!--添加-->
+    <insert id="addDrug" parameterType="drug">
+        insert into t_drug(drugname,drugPrice,drugSales,
+                            drugStock,isOTC,person,producedDate,expiredDate,createDate,
+                            areaId,brandId,filePath)
+        VALUES
+        (
+            #{drugName},#{drugPrice},#{drugSales},
+            #{drugStock},#{isOTC},#{person},#{producedDate},#{expiredDate},#{createDate},
+            #{areaId},#{brandId},#{filePath}
+        )
+    </insert>
+    <!--查询单个id-->
+    <select id="getDrugById" parameterType="int" resultType="drug">
+        select * from t_drug where id = #{id}
+    </select>
+    <!--删除-->
+    <delete id="deleteDrug" parameterType="int">
+        delete from t_drug where id = #{id}
+    </delete>
+    <!--修改-->
+    <update id="updateDrug" parameterType="drug">
+      update t_drug set
+      drugName=#{drugName},drugPrice=#{drugPrice},drugSales=#{drugSales},
+   drugStock=#{drugStock},isOTC=#{isOTC},person=#{person},producedDate=#{producedDate},expiredDate=#{expiredDate},updateDate=#{updateDate},
+    areaId=#{areaId},brandId=#{brandId},filePath=#{filePath}
+    where id = #{id}
+    </update>
+    <!--idlist-->
+    <select id="queryDrugListByIds" parameterType="java.util.List" resultType="drug">
+        select * from t_drug where id in
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+    <!--批量删-->
+    <delete id="batchDeleteDrug" parameterType="java.util.List">
+        delete from t_drug where id in
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
