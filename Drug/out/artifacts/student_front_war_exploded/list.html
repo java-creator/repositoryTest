@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9; IE=8; IE=7; IE=EDGE">
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link  href="js/bootstrap3/css/bootstrap.css" rel="stylesheet">
+    <link  href="js/bootstrap3/css/bootstrap-theme.css" rel="stylesheet">
+    <link  href="js/bootstrap-datetimepicker/css/bootstrap-datetimepicker.css" rel="stylesheet">
+    <link  href="js/DataTables/DataTables-1.10.18/css/dataTables.bootstrap.css" rel="stylesheet">
+    <link  href="js/fileinput5/css/fileinput.css" rel="stylesheet">
+    <link  href="js/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css" rel="stylesheet">
+    <script src="js/jquery-3.3.1.min.js"></script>
+    <script src="js/bootstrap3/js/bootstrap.js"></script>
+    <script src="js/DataTables/DataTables-1.10.18/js/jquery.dataTables.js"></script>
+    <script src="js/DataTables/DataTables-1.10.18/js/dataTables.bootstrap.js"></script>
+    <script src="js/bootstrap-datetimepicker/js/moment-with-locales.js"></script>
+    <script src="js/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="js/bootbox/bootbox.min.js"></script>
+    <script src="js/fileinput5/js/fileinput.js"></script>
+    <script src="js/fileinput5/js/locales/zh.js"></script>
+    <script src="js/bootstrap-validator/js/bootstrapValidator.min.js"></script>
+
+    <script>
+        $(function () {
+            initDataTable();
+            initType();
+           /* initDate()*/
+        })
+
+        function queryList() {
+            $("#example").dataTable().fnDraw(true);
+        }
+        //展示
+        function initDataTable(){
+           $('#example').DataTable({
+                "pagingType":"simple_numbers",
+                "lengthMenu": [[3, 6,9], [3, 6,9]],
+                "serverSide": true,
+                "searching": false,//启用搜索功能
+                "ordering": false, // 禁止排序
+                "ajax": {
+                    url: 'http://localhost:8082/queryStudent',
+                    type: 'POST',
+                    "dataSrc" : function (result) {
+                        if(result.status == 200){
+                            result.draw = result.data.draw;
+                            result.recordsTotal = result.data.recordsTotal;
+                            result.recordsFiltered = result.data.recordsFiltered;
+                            return result.data.data;
+                        }else {
+                            return "";
+                        }
+                    },
+                    "data": function (d) {
+                   //添加额外的参数传给服务器
+                        d.name = $("#name").val();
+                        d.minAge = $("#minAge").val();
+                        d.maxAge = $("#maxAge").val();
+                        d.minWeight = $("#minWeight").val();
+                        d.maxWeight = $("#maxWeight").val();
+                        d.gradeId = $("#gradeId").val();
+                        d.areaId = $("#areaId").val();
+                        d.minDate = $("#minDate").val();
+                        d.maxDate = $("#maxDate").val();
+                        //获取适合人群  复选框
+                        var hobbyCheckboxes = $("[name=hobby]:checked");
+                        if (hobbyCheckboxes.length > 0) {
+                            var hobby = "";
+                            hobbyCheckboxes.each(function (abc, def) {
+                                //abc 代表当前循环的下标
+                                //def 代表当前遍历的元素(DOM对象)
+                                //this代表当前遍历的复选框，是一个DOM对象，JQuery对象
+                                hobby += def.value + ",";
+                            });
+                            hobby = hobby.substring(0, hobby.length - 1);
+                            param.person = hobby;
+                        }
+                        d.sex = $("[name=sex]:checked").val();
+                    }
+                },
+                "columns": [
+                    {data: "name"},
+                    {data: "age"},
+                    {
+                        data: "sex",
+                        render: function (data) {
+                            return data == 1 ? "男" : "女";
+                        }
+                    },
+                    {data: "areaId"},
+                    {data: "gradeId"},
+                    {data: "weight"},
+                    {
+                        data: "hobby",
+                        render: function (data) {
+                            return data.replace("1", "爬山").replace("2", "健身").replace("3", "游泳").replace("4", "读书");
+                        }
+                    },
+                    {
+                        data: "filePath",
+                        render: function (data) {
+                            return "<img width='50' height='50' src='" + data + "' />";
+                        }
+                    },
+                    {
+                        data:
+                        function(obj) {
+                            return getMyDate(obj.birthday)
+                        }
+                    },
+                    {
+                        data:
+                        function(obj) {
+                            return getMyDate(obj.createDate)
+                        }
+                    },
+                    {
+                        "data":"updateDate"/*,
+                        render:function(data, type, row, meta){
+
+                            return new Date(data).toLocaleDateString();
+                        }*/
+                    },
+                    {"data" : null,render:function(data, type, row, meta) {
+                            var id = '"' + data.id + '"';
+                            var html= "<button type='button' class='btn btn-warning' onclick='updateStudent("+id+")'>修改</button>"
+                            html+="<button type='button' class='btn btn-danger' onclick='del("+id+")'>删除</button>"
+
+                            return html;
+                        }}
+                ],
+                language: {
+                    "sProcessing": "处理中...",
+                    "sLengthMenu": "显示 _MENU_ 项结果",
+                    "sZeroRecords": "没有匹配结果",
+                    "sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+                    "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+                    "sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+                    "sInfoPostFix": "",
+                    "sSearch": "搜索:",
+                    "sUrl": "",
+                    "sEmptyTable": "表中数据为空",
+                    "sLoadingRecords": "载入中...",
+                    "sInfoThousands": ",",
+                    "oPaginate": {
+                        "sFirst": "首页",
+                        "sPrevious": "上页",
+                        "sNext": "下页",
+                        "sLast": "末页"
+                    },
+                    "oAria": {
+                        "sSortAscending": ": 以升序排列此列",
+                        "sSortDescending": ": 以降序排列此列"
+                    }
+                }
+            });
+        };
+        //时间
+        function initDate() {
+            $('#minDate').datetimepicker({
+                format: 'YYYY-MM-DD',
+                locale: moment.locale('zh-cn'),
+                showClear: true
+            });
+            $('#maxDate').datetimepicker({
+                format: 'YYYY-MM-DD',
+                locale: moment.locale('zh-cn'),
+                showClear: true
+            });
+        }
+        //新增学生
+        function addStudent(){
+            bootbox.dialog({
+                message: $("#studentScript").html(),
+                title: "新增",
+                buttons: {
+                    OK: {
+                        label: "确认",
+                        className: "btn-primary",
+                        callback: function () {
+                            $.post(
+                                "http://localhost:8082/addStudent",
+                                $("#studentFrom").serialize(),
+                                function (data) {
+                                    if(data.status == 200){
+                                        queryList();
+                                    }else{
+                                        bootbox.alert({
+                                            buttons: {
+                                                ok: {
+                                                    label: '确认',
+                                                    className: 'btn-primary'
+                                                }
+                                            },
+                                            message: '新增失败，请联系管理员！',
+                                            callback: function() {
+                                            },
+                                            title: "提示信息"
+                                        });
+                                    }
+                                }
+                            )
+                        }
+                    }
+                },
+                Cancel: {
+                    label: "取消",
+                    className: "btn-default",
+                    callback: function () {
+
+                    }
+                }
+            });
+            initGrade(gradeId);
+            initArea(areaId);
+            initAddFileInput();
+            studentDate();
+            /*expiredDate();*/
+        }
+        //创建时间
+        function studentDate() {
+            $("#birthday").datetimepicker({
+                format: 'YYYY-MM-DD'
+            });
+        }
+        //过期时间
+       /* function expiredDate() {
+            $("#expiredDate").datetimepicker({
+                format: 'YYYY-MM-DD'
+            });
+        }*/
+
+        function initType(){
+            $.post(
+                "http://localhost:8082/queryGrade",
+                function(data){
+                    var data=data.data;
+                    for (var i = 0; i < data.length; i++) {
+                        $("#gradeId").append(
+                            "<option value='"+data[i].gradeId+"'>"+data[i].gradeName+"</option>"
+                        )
+                    }
+                }
+            )
+        }
+        //班级增加
+        function initGrade(gradeId){
+            //开启同步加载 防止修改页面  品牌回显是好时坏
+            $.ajaxSettings.async = false;
+            $.post(
+                "http://localhost:8082/queryGrade",
+                function(result) {
+                    if (result.status == 200) {
+                        var data=result.data;
+                        var str = ""
+                        for (var i = 0; i < data.length; i++) {
+                            if (gradeId == data[i].gradeId) {
+                                str += "<option value='" + data[i].gradeId + "' selected>" + data[i].gradeName + "</option>"
+                            } else {
+                                str += "<option value='" + data[i].gradeId + "'>" + data[i].gradeName + "</option>"
+                            }
+                        }
+                        $("#gradeName").append(str);
+                    }
+                }
+            )
+            $.ajaxSettings.async = true;
+        }
+        //地区增加
+        function initArea(areaId){
+            //开启同步加载 防止修改页面  品牌回显是好时坏
+            $.ajaxSettings.async = false;
+            $.post(
+                "http://localhost:8082/queryArea",
+                function(result) {
+                    if (result.status == 200) {
+                        var data=result.data;
+                        var str = ""
+                        for (var i = 0; i < data.length; i++) {
+                            if (areaId == data[i].areaId) {
+                                str += "<option value='" + data[i].areaId + "' selected>" + data[i].areaName + "</option>"
+                            } else {
+                                str += "<option value='" + data[i].areaId + "'>" + data[i].areaName + "</option>"
+                            }
+                        }
+                        $("#areaName").append(str);
+                    }
+                }
+            )
+            $.ajaxSettings.async = true;
+        }
+        //删除
+        function del(id){
+            bootbox.dialog({
+                message: "确认删除",
+                title: "删除",
+                buttons: {
+                    Cancel: {
+                        label: "取消",
+                        className: "btn-default",
+                        callback: function () {
+                        }
+                    }
+                    , OK: {
+                        label: "确认",
+                        className: "btn-danger",
+                        callback: function () {
+                            $.post(
+                                "http://localhost:8082/deleteStudent",
+                                {"id":id},
+                                function(data){
+                                    if(data.status==200){
+                                        queryList();
+                                    }else{
+                                        bootbox.alert(data.status, function () {
+
+                                        })
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateStudent(id){
+            bootbox.dialog({
+                message: $("#studentScript").html(),
+                title: "",
+                buttons: {
+                    Cancel: {
+                        label: "取消",
+                        className: "btn-default",
+                        callback: function () {
+                        }
+                    },
+                    OK: {
+                        label: "确认",
+                        className: "btn-primary",
+                        callback: function () {
+                            $.post(
+                                "http://localhost:8082/updateStudent",
+                                $("#studentFrom").serialize(),
+                                function(data) {
+                                    if(data.status == 200){
+                                        queryList();
+                                    }else{
+                                        bootbox.alert({
+                                            buttons: {
+                                                ok: {
+                                                    label: '确认',
+                                                    className: 'btn-primary'
+                                                }
+                                            },
+                                            message: '修改失败，请联系管理员！',
+                                            callback: function() {
+                                            },
+                                            title: "提示信息"
+                                        });
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            })
+            getIdByStu(id);
+            studentDate();
+
+        }
+        //回显
+        function getIdByStu(id) {
+
+            $.post(
+                "http://localhost:8082/getById",
+                {"id":id},
+                function(data) {
+                    if(data.status == 200) {
+                        var data = data.data;
+                        //回显修改药品表单中的数据了
+                        $("#id").val(id);
+                        $("#name").val(data.name);
+                        $("#age").val(data.age);
+                        /*$("#areaId").val(data.areaId);*/
+                        initArea(data.areaId)
+                        /*$("#brandId").val();*/
+                        initGrade(data.gradeId);
+                        $("#weight").val(data.weight);
+                        if(data.sex == 1){
+                            $("#sex1").attr("checked","checked");
+                        }else {
+                            $("#sex2").attr("checked","checked");
+                        }
+                        var hobby = data.hobby.split(",");
+                        $("[name=hobby]").each(function(){
+                            if(hobby.indexOf(this.value) != -1){
+                                this.checked = true;
+                            }
+                        });
+                        $("#addFilePath").val(data.filePath);
+                        initUpdateFileInput();
+                        $("#birthday").val(getMyDate(data.birthday));
+                      /*  $("#expiredDate").val(getMyDate(data.expiredDate));*/
+
+                    }
+
+                }
+            )
+        }
+
+        function getMyDate(str) {
+            var oDate = new Date(str),
+                oYear = oDate.getFullYear(),
+                oMonth = oDate.getMonth()+1,
+                oDay = oDate.getDate(),
+                oTime = oYear +'-'+ addZero(oMonth) +'-'+ addZero(oDay);
+            return oTime;
+        }
+        //补零操作
+        function addZero(num){
+            if(parseInt(num) < 10){
+                num = '0'+num;
+            }
+            return num;
+        }
+
+        //添加图片
+        function initAddFileInput() {
+
+            $("#addFile").fileinput({
+                language: 'zh', //设置语言
+                uploadUrl: "http://localhost:8082/photoUpload", //上传的地址
+                allowedFileExtensions: ['jpg', 'gif', 'png', 'exe'],//接收的文件后缀
+                //uploadExtraData:{"id": 1, "fileName":'123.mp3'},
+                uploadAsync: true, //默认异步上传
+                showUpload: true, //是否显示上传按钮
+                showRemove: true, //显示移除按钮
+                showPreview: true, //是否显示预览
+                showCaption: false,//是否显示标题
+                browseClass: "btn btn-primary", //按钮样式
+                dropZoneEnabled: false,//是否显示拖拽区域
+                //minImageWidth: 50, //图片的最小宽度
+                //minImageHeight: 50,//图片的最小高度
+                //maxImageWidth: 1000,//图片的最大宽度
+                //maxImageHeight: 1000,//图片的最大高度
+                //maxFileSize: 0,//单位为kb，如果为0表示不限制文件大小
+                //minFileCount: 0,
+                maxFileCount: 10, //表示允许同时上传的最大文件个数
+                enctype: 'multipart/form-data',
+                validateInitialCount: true,
+                previewFileIcon: "<i class='glyphicon glyphicon-cloud'></i>",
+                msgFilesTooMany: "选择上传的文件数量({n}) 超过允许的最大数值{m}！",
+                layoutTemplates: {
+                    //actionDelete:'', //去除上传预览的缩略图中的删除图标
+                    //actionUpload:'',//去除上传预览缩略图中的上传图片；
+                    //actionZoom:''   //去除上传预览缩略图中的查看详情预览的缩略图标。
+                }
+            }).on("fileuploaded", function (event, data, previewId, index) {    //一个文件上传成功
+                console.log('文件上传成功！');
+                console.log(data);
+                $("#addFilePath").val(data.response.filePath);
+            })
+        }
+
+        //回显图片
+        function initUpdateFileInput() {
+            var filePath = $("#addFilePath").val();
+            $("#addFile").fileinput({
+                language: 'zh', //设置语言
+                uploadUrl: "http://localhost:8082/photoUpload", //上传的地址
+                allowedFileExtensions: ['jpg', 'gif', 'png','exe'],//接收的文件后缀
+                //uploadExtraData:{"id": 1, "fileName":'123.mp3'},
+                uploadAsync: true, //默认异步上传
+                showUpload: true, //是否显示上传按钮
+                showRemove : true, //显示移除按钮
+                showPreview : true, //是否显示预览
+                showCaption: false,//是否显示标题
+                browseClass: "btn btn-primary", //按钮样式
+                dropZoneEnabled: false,//是否显示拖拽区域
+                //minImageWidth: 50, //图片的最小宽度
+                //minImageHeight: 50,//图片的最小高度
+                //maxImageWidth: 1000,//图片的最大宽度
+                //maxImageHeight: 1000,//图片的最大高度
+                //maxFileSize: 0,//单位为kb，如果为0表示不限制文件大小
+                //minFileCount: 0,
+                maxFileCount: 10, //表示允许同时上传的最大文件个数
+                enctype: 'multipart/form-data',
+                validateInitialCount:true,
+                initialPreview: [ //预览图片的设置
+                    "<img src='"+filePath+"' class='file-preview-image' style='width:180px'>"
+                ],
+                previewFileIcon: "<i class='glyphicon glyphicon-cloud'></i>",
+                msgFilesTooMany: "选择上传的文件数量({n}) 超过允许的最大数值{m}！",
+                layoutTemplates :{
+                    //actionDelete:'', //去除上传预览的缩略图中的删除图标
+                    //actionUpload:'',//去除上传预览缩略图中的上传图片；
+                    //actionZoom:''   //去除上传预览缩略图中的查看详情预览的缩略图标。
+                }
+            }).on("fileuploaded", function (event, data, previewId, index) {    //一个文件上传成功
+                console.log('文件上传成功！');
+                console.log(data);
+                $("#addFilePath").val(data.response.filePath);
+
+            })
+        }
+
+    </script>
+    <!--新增，修改 共用-->
+    <script type="text/html" id="studentScript">
+        <form class="form-horizontal" style="margin-top: 20px" id="studentFrom" method="post">
+            <div class="form-group">
+                <label class="col-sm-2 control-label">学生名称</label>
+                <div class="col-sm-10">
+                    <input type="hidden" id="id"  name="id"/>
+                    <input type="text" class="form-control" id="studentName" name="studentName" placeholder="学生名称">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-sm-2 control-label">年龄</label>
+                <div class="col-sm-10">
+                    <input type="text" class="form-control" id="studentAge"  name="studentAge" placeholder="年龄">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-sm-2 control-label">性别</label>
+                <div class="col-sm-10">
+                    <label class="radio-inline">
+                        <input type="radio" name="sex" id="sex1" value="1"> 男
+                    </label>
+                    <label class="radio-inline">
+                        <input type="radio" name="sex" id="sex2" value="2"> 女
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-sm-2 control-label">头像</label>
+                <div class="col-sm-10">
+                    <!-- 用于存放上传的图片相对路径的隐藏域 -->
+                    <input type="text" id="addFilePath" name="filePath"/>
+                    <input type="file" class="form-control" name="filePath" id="addFile">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-sm-2 control-label">班级</label>
+                <div class="col-sm-10">
+                    <select id="gradeName" name="gradeId" class="form-control">
+                        <option value="-1">请选择</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-sm-2 control-label">地区</label>
+                <div class="col-sm-10">
+                    <select id="areaName" name="areaId" class="form-control">
+                        <option value="-1">请选择</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-sm-2 control-label">体重</label>
+                <div class="col-sm-10">
+                    <input type="text" class="form-control" id="studentWeight" name="studentWeight">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-sm-2 control-label">爱好</label>
+                <div class="col-sm-10">
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="hobby" value="1"> 爬山
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="hobby" value="2"> 健身
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="hobby" value="3"> 游泳
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="hobby" value="4"> 读书
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-sm-2 control-label">出生日期</label>
+                <div class="col-sm-10">
+                    <input type="text" class="form-control" id="birthday" name="birthday">
+                </div>
+            </div>
+
+        </form>
+    </script>
+</head>
+<body>
+<!--条件查询-->
+<div class="col-md-12">
+    <form class="form-horizontal" id="tiaojianForm">
+        <div class="form-group">
+            <label class="col-sm-2 control-label">学生名称</label>
+            <div class="col-sm-3">
+                <input type="email" class="form-control" id="name" placeholder="学生名称">
+            </div>
+            <label class="col-sm-2 control-label">学生年龄</label>
+            <div class="col-sm-3">
+                <div class="input-group">
+                    <input type="text" class="form-control"  aria-describedby="basic-addon2" id="minAge">
+                    <span class="input-group-addon">--</i></span>
+                    <input type="text" class="form-control"  aria-describedby="basic-addon2"   id="maxAge">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="col-sm-2 control-label">学生体重</label>
+            <div class="col-sm-3">
+                <div class="input-group">
+                    <input type="text" class="form-control"  aria-describedby="basic-addon2" id="minWeight">
+                    <span class="input-group-addon">--</i></span>
+                    <input type="text" class="form-control"  aria-describedby="basic-addon2"   id="maxWeight">
+                </div>
+            </div>
+            <label class="col-sm-2 control-label">班级</label>
+                <div class="col-sm-3">
+                    <select id="gradeId" class="form-control col-sm-8">
+                        <option value="-1">请选择</option>
+                    </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="col-sm-2 control-label">地区</label>
+            <div class="col-sm-3">
+                <select id="areaId" class="form-control col-sm-8">
+                    <option value="-1">请选择</option>
+                </select>
+            </div>
+            <label class="col-sm-2 control-label">出生年月</label>
+            <div class="col-sm-3">
+                <div class="input-group">
+                    <input type="text" class="form-control"  aria-describedby="basic-addon2" id="minDate">
+                    <span class="input-group-addon" id="basic-addon3"><i class="glyphicon glyphicon-calendar "></i></span>
+                    <input type="text" class="form-control"  aria-describedby="basic-addon2"   id="maxDate">
+                </div>
+            </div>
+        </div>
+            <div class="form-group">
+                <label class="col-sm-2 control-label">爱好</label>
+                <div class="col-sm-3">
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="hobby" value="1"> 爬山
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="hobby" value="2"> 健身
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="hobby" value="3"> 游泳
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="hobby" value="4"> 读书
+                    </label>
+                </div>
+                        <label class="col-sm-2 control-label">学生性别</label>
+                      <div class="col-sm-3">
+                            <label class="radio-inline">
+                                <input type="radio" name="sex" value="1"> 男
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="sex" value="2"> 女
+                            </label>
+                        </div>
+                </div>
+
+        <div class="form-group">
+            <div class="col-sm-offset-5 col-sm-10">
+                <div class="btn-group btn-group-lg" role="group" aria-label="...">
+                    <button type="button" class="btn btn-primary"  onclick="queryList()">提交</button>
+                    <button type="reset" class="btn btn-danger">重置</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    </div>
+
+<!--新增按钮-->
+<div style="margin-right: 20px;margin-left: 20px;margin-top: 20px">
+    <button type="button" onclick="addStudent()" class="btn btn-info"> 新增</button>
+</div>
+<!--页面展示-->
+<div class="panel panel-primary" style="margin-right: 20px;margin-left: 20px;margin-top: 20px">
+    <div class="panel-heading">学生列表</div>
+    <div class="panel-body">
+        <div class="bs-example" data-example-id="bordered-table">
+            <table class="table table-striped table-bordered" id="example" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>学生名称</th>
+                        <th>年龄</th>
+                        <th>性别</th>
+                        <th>班级</th>
+                        <th>地区</th>
+                        <th>体重</th>
+                        <th>爱好</th>
+                        <th>头像</th>
+                        <th>出生日期</th>
+                        <th>创建日期</th>
+                        <th>修改日期</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

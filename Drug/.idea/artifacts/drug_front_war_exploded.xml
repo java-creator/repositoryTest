@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="exploded-war" name="drug-front:war exploded">
+    <output-path>$PROJECT_DIR$/out/artifacts/drug_front_war_exploded</output-path>
+    <root id="root">
+      <element id="javaee-facet-resources" facet="drug-front/web/Web" />
+      <element id="directory" name="WEB-INF">
+        <element id="directory" name="classes">
+          <element id="module-output" name="drug-front" />
+        </element>
+      </element>
+    </root>
+  </artifact>
+</component>

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC
+    "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.fh.mapper.DrugMapper">
+	<!--查询-->
+	<select id="queryList" resultMap="MapList" parameterType="drugQuery">
+		<!--select m.*,t.typeName 'typeName' from t_movie m
+		left join t_movie_type t on t.id = m.typeId
+		<include refid="sql_where"/>
+		limit #{start},#{length}-->
+		select td.*,ta.areaName,tb.brandName from t_drug td
+		left join t_drugarea ta on td.areaId = ta.areaId
+		left join t_brand tb on td.brandId = tb.brandId
+		<include refid="sql_where"></include>
+		limit #{start},#{length}
+	</select>
+
+
+
+	<delete id="batchDelete"  parameterType="list">
+		delete from t_drug where id in
+		<foreach collection="list" open="(" close=")" separator="," item="item">
+			#{item}
+		</foreach>
+	</delete>
+
+	<resultMap id="MapList" type="Map">
+		<result property="id" column="id"></result>
+		<result property="drugName" column="drugName"></result>
+		<result property="drugPrice" column="drugPrice"></result>
+		<result property="drugSales" column="drugSales"></result>
+		<result property="drugStock" column="drugStock"></result>
+		<result property="isOTC" column="isOTC"></result>
+		<result property="person" column="person"></result>
+		<result property="producedDate" column="producedDate"></result>
+		<result property="expiredDate" column="expiredDate"></result>
+		<result property="createDate" column="createDate"></result>
+		<result property="updateDate" column="updateDate"></result>
+		<result property="areaId" column="areaId"></result>
+		<result property="brandId" column="brandId"></result>
+		<result property="filePath" column="filePath"></result>
+		<result property="areaName" column="areaName"></result>
+		<result property="brandName" column="brandName"></result>
+	<!--	<result property="count" column="count"></result>-->
+	</resultMap>
+
+	<sql id="sql_where">
+		<where>
+			<!--名字模糊查询-->
+			<if test="name != null and name != ''">
+				and drugName like concat('%',#{name},'%')
+			</if>
+			<!--价格区间-->
+			<if test="minPrice != null">
+				and drugPrice &gt;=#{minPrice}
+			</if>
+			<if test="maxPrice != null">
+				and drugPrice &lt;=#{maxPrice}
+			</if>
+			<!--销量区间-->
+			<if test="minSales != null">
+				and drugSales &gt;=#{minSales}
+			</if>
+			<if test="maxSales != null">
+				and drugSales &lt;=#{maxSales}
+			</if>
+			<!--库存区间-->
+			<if test="minStock != null">
+				and drugStock &gt;=#{minStock}
+			</if>
+			<if test="maxStock != null">
+				and drugStock &lt;=#{maxStock}
+			</if>
+			<!--时间区间-->
+			<if test="minExpiredDate != null">
+				and expiredDate &gt;=#{minExpiredDate}
+			</if>
+			<if test="maxExpiredDate != null">
+				and expiredDate &lt;=#{maxExpiredDate}
+			</if>
+			<if test="minProducedDate != null">
+				and producedDate &gt;=#{minProducedDate}
+			</if>
+			<if test="maxProducedDate != null">
+				and producedDate &lt;=#{maxProducedDate}
+			</if>
+			<!--地区-->
+			<if test="areaId != null and areaId != -1">
+				and areaId = #{areaId}
+			</if>
+			<!--品牌-->
+			<if test="brandId != null and brandId != -1">
+				and brandId = #{brandId}
+			</if>
+			<!--处方药-->
+			<if test="isOTC != null">
+				and isOTC = #{isOTC}
+			</if>
+			<!--适合人群-->
+			<if test="personList != null">
+				<foreach collection="personList" item="person" index="index">
+					and person like concat('%',#{person},'%')
+				</foreach>
+			</if>
+		</where>
+	</sql>
+</mapper>

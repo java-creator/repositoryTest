@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9; IE=8; IE=7; IE=EDGE">
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link  href="js/bootstrap3/css/bootstrap.css" rel="stylesheet">
+    <link  href="js/bootstrap3/css/bootstrap-theme.css" rel="stylesheet">
+    <link  href="js/bootstrap-datetimepicker/css/bootstrap-datetimepicker.css" rel="stylesheet">
+    <link  href="js/DataTables/DataTables-1.10.18/css/dataTables.bootstrap.css" rel="stylesheet">
+    <link  href="js/fileinput5/css/fileinput.css" rel="stylesheet">
+    <link  href="js/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css" rel="stylesheet">
+    <script src="js/jquery-3.3.1.min.js"></script>
+    <script src="js/bootstrap3/js/bootstrap.js"></script>
+    <script src="js/DataTables/DataTables-1.10.18/js/jquery.dataTables.js"></script>
+    <script src="js/DataTables/DataTables-1.10.18/js/dataTables.bootstrap.js"></script>
+    <script src="js/bootstrap-datetimepicker/js/moment-with-locales.js"></script>
+    <script src="js/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="js/bootbox/bootbox.min.js"></script>
+    <script src="js/fileinput5/js/fileinput.js"></script>
+    <script src="js/fileinput5/js/locales/zh.js"></script>
+    <script src="js/bootstrap-validator/js/bootstrapValidator.min.js"></script>
+
+    <script>
+        /*var idList = [];*/
+        $(function () {
+            initDataTable();
+            initDate();
+            initType();
+        })
+        //条件查询时间
+        function initDate(){
+            $('#minDate').datetimepicker({
+                format: 'YYYY-MM-DD',
+                locale: moment.locale('zh-cn'),
+                showClear: true
+            });
+
+            $('#maxDate').datetimepicker({
+                format: 'YYYY-MM-DD',
+                locale: moment.locale('zh-cn'),
+                showClear: true
+            });
+
+        }
+        //展示类型
+        function initType(){
+            $.post(
+                "http://localhost:8080/movie/queryTypeList.action",
+                function(result){
+                    if(result.status == 200){
+                        var data = result.data;
+                        for (var i = 0; i < data.length; i++) {
+                            $("#type").append(
+                                "<option value='"+data[i].id+"'>"+data[i].typeName+"</option>"
+                            )
+                        }
+                    }
+                }
+            )
+        }
+        //展示列表
+        function initDataTable(){
+            myTable = $('#example').DataTable({
+                "pagingType":"simple_numbers",
+                "lengthMenu": [[3, 6,9], [3, 6,9]],
+                "serverSide": true,
+                "searching": false,//启用搜索功能
+                "ordering": false, // 禁止排序
+                "ajax": {
+                    url: 'http://localhost:8080/drug/queryList.action',
+                    type: 'POST',
+                    "dataSrc" : function (result) {
+                        if(result.status == 200){
+                            result.draw = result.data.draw;
+                            result.recordsTotal = result.data.recordsTotal;
+                            result.recordsFiltered = result.data.recordsFiltered;
+                            return result.data.data;
+                        }else {
+                            return "";
+                        }
+                    },
+                    "data": function ( d ) {
+                        //添加额外的参数传给服务器
+                        d.name = $("#name").val();
+                        d.minPrice = $("#minPrice").val();
+                        d.maxPrice = $("#maxPrice").val();
+                        d.minSales = $("#minSales").val();
+                        d.maxSales = $("#maxSales").val();
+                        d.areaId = $("#areaId").val();
+                        d.minStock = $("#minStock").val();
+                        d.maxStock = $("#maxStock").val();
+                        d.minExpiredDate = $("#minExpiredDate").val();
+                        d.maxExpiredDate = $("#maxExpiredDate").val();
+                        d.brandId = $("#brandId").val();
+                        d.minProducedDate = $("#minProducedDate").val();
+                        d.maxProducedDate = $("#maxProducedDate").val();
+                        //获取适合人群  复选框
+                        var personCheckboxes = $("[name=person]:checked");
+                        if (personCheckboxes.length > 0) {
+                            var person = "";
+                            personCheckboxes.each(function (abc, def) {
+                                //abc 代表当前循环的下标
+                                //def 代表当前遍历的元素(DOM对象)
+                                //this代表当前遍历的复选框，是一个DOM对象，JQuery对象
+                                person += def.value + ",";
+                            });
+                            person = person.substring(0, person.length - 1);
+                            param.person = person;
+                        }
+                        d.isOTC = $("[name=isOTC]:checked").val();
+                    }
+                },
+                "columns": [
+                    {
+                        data: "id",
+                        render: function (data) {
+                            return "<input type='checkbox' name='id' value='" + data + "'/>";
+                        }
+                    },
+                    {data: "drugName"},
+                    {data: "drugPrice"},
+                    {data: "areaName"},
+                    {data: "brandName"},
+                    {data: "drugSales"},
+                    {data: "drugStock"},
+                    {data: "isOTC",render:function(data, type, row, meta) {
+                            if(data == 1){
+                                data = "是";
+                            }else{
+                                data = "否";
+                            }
+                            return data;
+                        }},
+                    {
+                        data: "person",
+                        render: function (data) {
+                            return data.replace("1", "幼年").replace("2", "少年").replace("3", "青年").replace("4", "中年").replace("5", "老年").replace("6", "孕妇");
+                        }
+                    },
+                    {
+                        data: "filePath",
+                        render: function (data) {
+                            return "<img width='50' height='50' src='<%=request.getContextPath()%>" + data + "' />";
+                           /* return "<img src='http://localhost:8000/upload/"+data+"' height='70px'>";*/
+                        }
+                    },
+                    {data: "producedDate"},
+                    {data: "expiredDate"},
+                    {data: "createDate"},
+                    {data: "updateDate"},
+                    {data : null,render:function(data, type, row, meta) {
+                            var id = '"' + data.drugId + '"';
+                            var html= "<button type='button' class='btn btn-danger' onclick='deleteMovie("+id+")'>删除</button>"
+                            html+="<button type='button' class='btn btn-warning' onclick='updateMovie("+id+")'>修改</button>"
+
+                            return html;
+                        }}
+                ],
+                language: {
+                    "sProcessing": "处理中...",
+                    "sLengthMenu": "显示 _MENU_ 项结果",
+                    "sZeroRecords": "没有匹配结果",
+                    "sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+                    "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+                    "sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+                    "sInfoPostFix": "",
+                    "sSearch": "搜索:",
+                    "sUrl": "",
+                    "sEmptyTable": "表中数据为空",
+                    "sLoadingRecords": "载入中...",
+                    "sInfoThousands": ",",
+                    "oPaginate": {
+                        "sFirst": "首页",
+                        "sPrevious": "上页",
+                        "sNext": "下页",
+                        "sLast": "末页"
+                    },
+                    "oAria": {
+                        "sSortAscending": ": 以升序排列此列",
+                        "sSortDescending": ": 以降序排列此列"
+                    }
+                }
+            });
+        };
+        //新增
+        function addMovie(){
+            bootbox.dialog({
+                message: $("#movieScript").html(),
+                title: "新增电影",
+                buttons: {
+                    OK: {
+                        label: "确认",
+                        className: "btn-primary",
+                        callback: function () {
+                            $.post(
+                                "http://localhost:8080/movie/addMovie.action",
+                                $("#movieFrom").serialize(),
+                                function (data) {
+                                    if(data.status == 200){
+                                        queryList();
+                                    }else{
+                                        bootbox.alert({
+                                            buttons: {
+                                                ok: {
+                                                    label: '确认',
+                                                    className: 'btn-primary'
+                                                }
+                                            },
+                                            message: '修改失败，请联系管理员！',
+                                            callback: function() {
+                                            },
+                                            title: "提示信息"
+                                        });
+                                    }
+                                }
+                            )
+                        }
+                    }
+                },
+                Cancel: {
+                    label: "取消",
+                    className: "btn-default",
+                    callback: function () {
+
+                    }
+                }
+            });
+            addDate();
+
+            addType();
+
+            initFileInput();
+        }
+        //上传图片
+        function initFileInput() {
+
+            $("#input_id").fileinput({
+                language: 'zh', //设置语言
+                uploadUrl: "http://localhost:8080/ftp/uploadFTP.action", //上传的地址
+                allowedFileExtensions: ['jpg', 'gif', 'png','exe'],//接收的文件后缀
+                //uploadExtraData:{"id": 1, "fileName":'123.mp3'},
+                uploadAsync: true, //默认异步上传
+                showUpload: true, //是否显示上传按钮
+                showRemove : true, //显示移除按钮
+                showPreview : true, //是否显示预览
+                showCaption: false,//是否显示标题
+                browseClass: "btn btn-primary", //按钮样式
+                //dropZoneEnabled: true,//是否显示拖拽区域
+                //minImageWidth: 50, //图片的最小宽度
+                //minImageHeight: 50,//图片的最小高度
+                //maxImageWidth: 10,//图片的最大宽度
+                //maxImageHeight: 10,//图片的最大高度
+                //maxFileSize: 0,//单位为kb，如果为0表示不限制文件大小
+                //minFileCount: 0,
+                maxFileCount: 10, //表示允许同时上传的最大文件个数
+                enctype: 'multipart/form-data',
+                validateInitialCount:true,
+                previewFileIcon: "<i class='glyphicon glyphicon-cloud'></i>",
+                msgFilesTooMany: "选择上传的文件数量({n}) 超过允许的最大数值{m}！",
+                layoutTemplates :{
+                    //actionDelete:'', //去除上传预览的缩略图中的删除图标
+                    //actionUpload:'',//去除上传预览缩略图中的上传图片；
+                    //actionZoom:''   //去除上传预览缩略图中的查看详情预览的缩略图标。
+                }
+            }).on("fileuploaded", function (event, data, previewId, index) {    //一个文件上传成功
+                if(data.response.status == 200){
+                    $("#realPath").val(data.response.data.filePath);
+                    $("#imageFileName").val(data.response.data.fileName);
+                }
+            })
+        }
+        //新增时间
+        function addDate() {
+            $('#showTime').datetimepicker({
+                format: 'YYYY-MM-DD',
+                locale: moment.locale('zh-cn'),
+                showClear: true
+            });
+        }
+        //添加类型
+        function addType() {
+            $.post(
+                "http://localhost:8080/movie/queryTypeList.action",
+                function(result){
+                    if(result.status == 200){
+                        var data = result.data;
+                        for (var i = 0; i < data.length; i++) {
+                            $("#typeId").append(
+                                "<option value='"+data[i].id+"'>"+data[i].typeName+"</option>"
+                            )
+                        }
+                    }
+                }
+            )
+        }
+
+        function queryList() {
+            $("#example").dataTable().fnDraw(true);
+        }
+        //删除
+        function deleteMovie(id){
+            window.event.stopPropagation()// 阻止冒泡
+            bootbox.dialog({
+                message: "您确认要删除吗？",
+                title: "删除数据",
+                buttons: {
+                    Cancel: {
+                        label: "取消",
+                        className: "btn-default",
+                        callback: function () {
+
+                        }
+                    },
+                    OK: {
+                        label: "确认",
+                        className: "btn-primary",
+                        callback: function () {
+                            $.post(
+                                "http://localhost:8080/movie/deleteMovie.action",
+                                {"id":id},
+                                function(data){
+                                    if(data.status == 200){
+                                        queryList();
+                                    }else{
+                                        bootbox.alert({
+                                            buttons: {
+                                                ok: {
+                                                    label: '确认',
+                                                    className: 'btn-primary'
+                                                }
+                                            },
+                                            message: '删除失败，请联系管理员！',
+                                            callback: function() {
+                                            },
+                                            title: "提示信息"
+                                        });
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            });
+        }
+        //修改
+        function updateMovie(id){
+            bootbox.dialog({
+                message: $("#movieScript").html(),
+                title: "修改电影信息",
+                buttons: {
+                    Cancel: {
+                        label: "取消",
+                        className: "btn-default",
+                        callback: function () {
+
+                        }
+                    },
+                    OK: {
+                        label: "确认",
+                        className: "btn-primary",
+                        callback: function () {
+                            $.post(
+                                "http://localhost:8080/movie/updateMovie.action",
+                                $("#movieFrom").serialize(),
+                                function(data) {
+                                    if(data.status == 200){
+                                        queryList();
+                                    }else{
+                                        bootbox.alert({
+                                            buttons: {
+                                                ok: {
+                                                    label: '确认',
+                                                    className: 'btn-primary'
+                                                }
+                                            },
+                                            message: '修改失败，请联系管理员！',
+                                            callback: function() {
+                                            },
+                                            title: "提示信息"
+                                        });
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            })
+
+            addDate();
+
+            getMovieById(id);
+        }
+        //回显
+        function getMovieById(id) {
+            $.post(
+                "http://localhost:8080/movie/getIdByMovie.action",
+                {"id":id},
+                function(data) {
+                    if(data.status == 200) {
+                        var data = data.data;
+                        $("#movieId").val(id);
+                        $("#movieName").val(data.movieName);
+                        $("#showTime").val(getMyDate(data.showTime));
+                        $("#moviePrice").val(data.moviePrice);
+                        $("#count").val(data.count);
+                        if (data.country == 1) {
+                            document.getElementById("country1").checked = true;
+                        } else {
+                            document.getElementById("country2").checked = true;
+                        }
+                        $("#imageFileName").val(data.imageFileName);
+                        updateFileInput(data.realPath);
+                        updateType(data.typeId);
+                    }
+                }
+            )
+        }
+        //图片修改
+        function updateFileInput(filePath) {
+
+            $("#input_id").fileinput({
+                language: 'zh', //设置语言
+                uploadUrl: "http://localhost:8080/ftp/uploadFTP.action", //上传的地址
+                allowedFileExtensions: ['jpg', 'gif', 'png','exe'],//接收的文件后缀
+                //uploadExtraData:{"id": 1, "fileName":'123.mp3'},
+                uploadAsync: true, //默认异步上传
+                showUpload: true, //是否显示上传按钮
+                showRemove : true, //显示移除按钮
+                showPreview : true, //是否显示预览
+                showCaption: false,//是否显示标题
+                browseClass: "btn btn-primary", //按钮样式
+                //dropZoneEnabled: true,//是否显示拖拽区域
+                //minImageWidth: 50, //图片的最小宽度
+                //minImageHeight: 50,//图片的最小高度
+                //maxImageWidth: 10,//图片的最大宽度
+                //maxImageHeight: 10,//图片的最大高度
+                //maxFileSize: 0,//单位为kb，如果为0表示不限制文件大小
+                //minFileCount: 0,
+                maxFileCount: 10, //表示允许同时上传的最大文件个数
+                enctype: 'multipart/form-data',
+                validateInitialCount:true,
+                previewFileIcon: "<i class='glyphicon glyphicon-cloud'></i>",
+                msgFilesTooMany: "选择上传的文件数量({n}) 超过允许的最大数值{m}！",
+                layoutTemplates :{
+                    //actionDelete:'', //去除上传预览的缩略图中的删除图标
+                    //actionUpload:'',//去除上传预览缩略图中的上传图片；
+                    //actionZoom:''   //去除上传预览缩略图中的查看详情预览的缩略图标。
+                },
+                initialPreview: [
+                    "<img src='http://localhost:8000/upload/"+filePath+"' width=200px class='file-preview-image' alt='Desert' title='Desert'>",
+                ],
+            }).on("fileuploaded", function (event, data, previewId, index) {    //一个文件上传成功
+                if(data.response.status == 200){
+                    $("#realPath").val(data.response.data.filePath);
+                    $("#imageFileName").val(data.response.data.fileName);
+                }
+            })
+        }
+        //修改类型
+        function updateType(typeId) {
+            $.post(
+                "http://localhost:8080/movie/queryTypeList.action",
+                function(data){
+                    if(data.status == 200) {
+                        var data = data.data;
+                        var str = "";
+                        for (var i = 0; i < data.length; i++) {
+                            if (data[i].id == typeId) {
+                                str += "<option selected value='" + data[i].id + "'> " + data[i].typeName + "</option>"
+                            } else {
+                                str += "<option value='" + data[i].id + "'> " + data[i].typeName + "</option>"
+                            }
+                        }
+                        $("#typeId").append(str)
+                    }
+                }
+            )
+        }
+
+        function getMyDate(str) {
+            var oDate = new Date(str),
+                oYear = oDate.getFullYear(),
+                oMonth = oDate.getMonth()+1,
+                oDay = oDate.getDate(),
+                oTime = oYear +'-'+ addZero(oMonth) +'-'+ addZero(oDay);
+            return oTime;
+        }
+
+        //补零操作
+        function addZero(num){
+            if(parseInt(num) < 10){
+                num = '0'+num;
+            }
+            return num;
+        }
+
+       /* //反选
+        function fanXuan() {
+       $("[name='ids']").each(function () {
+           this.checked = !this.checked
+       })
+       }
+        //全选
+       function quanXuan() {
+           $("[name='ids']").each(function () {
+               this.checked = true;
+           })
+       }*/
+
+       /* function fanXuan() {
+            window.event.stopPropagation()// 阻止冒泡
+            $("[name='ids']").each(function () {
+                if(!this.checked){
+                    $(this).parent().parent().css("background-color","#66afe9");
+                    idList.push(this.value)
+                }else {
+                    $(this).parent().parent().css("background-color","");
+                    idList.splice(idList.indexOf(this.value),1)
+                }
+                this.checked = !this.checked
+            })
+        }*/
+       /*批量删除*/
+       function batchDelete() {
+           if(idList.length>0){
+               bootbox.dialog({
+                   message: "您确认要删除吗？",
+                   title: "删除数据",
+                   buttons: {
+                       Cancel: {
+                           label: "取消",
+                           className: "btn-default",
+                           callback: function () {
+
+                           }
+                       },
+                       OK: {
+                           label: "确认",
+                           className: "btn-primary",
+                           callback: function () {
+                               $.post(
+                                   "http://localhost:8080/movie/batchDelete.action",
+                                   {"idList":idList},
+                                   function (data) {
+                                       if(data.status==200){
+                                           queryList();
+                                       }else{
+                                           bootbox.confirm("操作失败,请联系管理员!",function () {
+
+                                           })
+                                       }
+                                   }
+                               )
+                           }
+                       }
+                   }
+               });
+           }else{
+               bootbox.alert("请选择要删除的数据！",function(){
+
+               })
+           }
+       }
+
+    </script>
+    <!--展示列表数据-->
+    <script type="text/html" id="movieScript">
+        <form class="form-horizontal" style="margin-top: 20px" id="movieFrom" method="post">
+            <div class="form-group">
+                <label class="col-sm-2 control-label">药品名称</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="drugName" name="drugName">
+                    <input type="hidden" id="drugId" name="drugId">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-2 control-label">药品价格</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="drugPrice" name="drugPrice">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-2 control-label">药品产地</label>
+                <div class="col-sm-9">
+                    <select class="form-control" name="drugAreaId" id="drugAreaId">
+                        <option value="0">-----请选择-----</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-2 control-label">药品品牌</label>
+                <div class="col-sm-9">
+                    <select class="form-control" name="drugBrandId" id="drugBrandId">
+                        <option value="0">-----请选择-----</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-2 control-label">销量</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="drugSales" name="drugSales">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-2 control-label">库存</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="drugStock" name="drugStock">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-2 control-label">处方药</label>
+                <div class="col-sm-9">
+                    <input type="radio" name="drugIsOTC" id="isOTC1" value="1" > <label class="control-label"> 是</label>
+                    <input type="radio" name="drugIsOTC" id="isOTC2" value="2" > <label class="control-label"> 否</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-2 control-label">适合人群</label>
+                <div class="col-sm-9">
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="drugPerson" value="1" id="drugPerson1"> 幼儿
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="drugPerson" value="2" id="drugPerson2"> 少年
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="drugPerson" value="3" id="drugPerson3"> 青年
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="drugPerson" value="4" id="drugPerson4"> 中年
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="drugPerson" value="5" id="drugPerson5"> 老年
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" name="drugPerson" value="6" id="drugPerson6"> 孕妇
+                    </label>
+                </div>
+            </div>
+            <div class="form-group" style="height:360px;margin-bottom: 50px">
+                <label  class="col-sm-2 control-label">药品图片</label>
+               <!-- <div class="col-sm-9" style="height:280px">
+                    <input id="input_id" name="file" multiple type="file" data-show-caption="true">
+                    <input type="hidden" id="realPath" name="realPath">
+                    <input type="hidden" id="imageFileName" name="imageFileName">
+                </div>-->
+                <div class="col-sm-9">
+                    <!-- 用于存放上传的图片相对路径的隐藏域 -->
+                    <input type="text" id="filePath" />
+                    <input type="file" class="form-control" name="file" id="addFile">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-2 control-label">生产日期</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="drugProducedDate" name="drugProducedDate" aria-describedby="basic-addon1">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-2 control-label">生产日期</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="drugExpiredDate" name="drugExpiredDate" aria-describedby="basic-addon1">
+                </div>
+            </div>
+        </form>
+    </script>
+</head>
+<body>
+<!--条件查询-->
+<form class="form-horizontal" id="searchForm" style="margin-right: 20px;margin-left: 20px;margin-top: 40px">
+    <div class="form-group">
+        <label class="col-sm-2 control-label">药品名称</label>
+        <div class="col-sm-3">
+            <input type="email" id="name" class="form-control" placeholder="药品名称">
+        </div>
+
+        <label class="col-sm-2 control-label">药品价格</label>
+        <div class="col-sm-3">
+            <div class="input-group">
+                <input type="text" class="form-control" id="minPrice" placeholder="0.00" aria-describedby="basic-addon1">
+                <span class="input-group-addon"><i class="glyphicon glyphicon-resize-horizontal"></i></span>
+                <input type="text" class="form-control" id="maxPrice" placeholder="0.00" aria-describedby="basic-addon1">
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-2 control-label">销量</label>
+        <div class="col-sm-3">
+            <div class="input-group">
+                <input type="text" class="form-control" id="minSales" placeholder="0.00" aria-describedby="basic-addon1">
+                <span class="input-group-addon"><i class="glyphicon glyphicon-resize-horizontal"></i></span>
+                <input type="text" class="form-control" id="maxSales" placeholder="0.00" aria-describedby="basic-addon1">
+            </div>
+        </div>
+        <label class="col-sm-2 control-label">产地</label>
+        <div class="col-sm-3">
+            <select class="form-control" id="areaId">
+                <option value="0">-----请选择-----</option>
+            </select>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-2 control-label">库存</label>
+        <div class="col-sm-3">
+            <div class="input-group">
+                <input type="text" class="form-control" id="minStock" placeholder="0.00" aria-describedby="basic-addon1">
+                <span class="input-group-addon"><i class="glyphicon glyphicon-resize-horizontal"></i></span>
+                <input type="text" class="form-control" id="maxStock" placeholder="0.00" aria-describedby="basic-addon1">
+            </div>
+        </div>
+        <label class="col-sm-2 control-label">过期时间</label>
+        <div class="col-sm-3">
+            <div class="input-group">
+                <input type="text" class="form-control" id="minExpiredDate" aria-describedby="basic-addon1">
+                <span class="input-group-addon"><i class="glyphicon glyphicon-resize-horizontal"></i></span>
+                <input type="text" class="form-control" id="maxExpiredDate" aria-describedby="basic-addon1">
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-2 control-label">品牌</label>
+        <div class="col-sm-3">
+            <select class="form-control" id="brandId">
+                <option value="0">-----请选择-----</option>
+            </select>
+        </div>
+        <label class="col-sm-2 control-label">生产日期</label>
+        <div class="col-sm-3">
+            <div class="input-group">
+                <input type="text" class="form-control" id="minProducedDate" aria-describedby="basic-addon1">
+                <span class="input-group-addon"><i class="glyphicon glyphicon-resize-horizontal"></i></span>
+                <input type="text" class="form-control" id="maxProducedDate" aria-describedby="basic-addon1">
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="col-sm-2 control-label">适合人群</label>
+        <div class="col-sm-3">
+            <label class="checkbox-inline">
+                <input type="checkbox" name="person" value="1"> 幼儿
+            </label>
+            <label class="checkbox-inline">
+                <input type="checkbox" name="person" value="2"> 少年
+            </label>
+            <label class="checkbox-inline">
+                <input type="checkbox" name="person" value="3"> 青年
+            </label>
+            <label class="checkbox-inline">
+                <input type="checkbox" name="person" value="4"> 中年
+            </label>
+            <label class="checkbox-inline">
+                <input type="checkbox" name="person" value="5"> 老年
+            </label>
+            <label class="checkbox-inline">
+                <input type="checkbox" name="person" value="6"> 孕妇
+            </label>
+        </div>
+        <label class="col-sm-2 control-label">处方药</label>
+        <div class="col-sm-3">
+            <input type="radio" name="isOTC" value="1" > <label class="control-label"> 是</label>
+            <input type="radio" name="isOTC" value="2" > <label class="control-label"> 否</label>
+        </div>
+    </div>
+</form>
+<!--批量删除-->
+<div style="margin-right: 20px;margin-left: 20px">
+    <button type="button" onclick="batchDelete()" class="btn btn-danger"><i class="glyphicon glyphicon-trash"></i> 批量删除</button>
+</div>
+
+<div style="margin-right: 20px;margin-left: 20px;margin-top: 20px">
+    <button type="button" onclick="addMovie()" class="btn btn-info"> 新增</button>
+</div>
+<div class="panel panel-primary" style="margin-right: 20px;margin-left: 20px;margin-top: 20px">
+    <div class="panel-heading">药品展示</div>
+    <div class="panel-body">
+        <div class="bs-example" data-example-id="bordered-table">
+            <table class="table table-striped table-bordered" id="example" style="width:100%">
+                <thead>
+                    <tr>
+                        <!--<td>
+                            <button type='button' class="btn btn-primary" onclick='quanXuan()'>全选</button>
+                            <button type='button' class="btn btn-primary" onclick='fanXuan()'>反选</button>
+                        </td>-->
+                        <!--<td><input type="checkbox" onclick="fanXuan()">选择</td>-->
+                        <th>
+                            <input type="checkbox" />
+                        </th>
+                        <td>药品名称</td>
+                        <td>价格</td>
+                        <td>产地</td>
+                        <td>品牌</td>
+                        <td>销量</td>
+                        <td>库存</td>
+                        <td>处方药</td>
+                        <th>适合人群</th>
+                        <th>药品图片</th>
+                        <th>生产日期</th>
+                        <th>过期日期</th>
+                        <th>创建日期</th>
+                        <th>修改日期</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>
